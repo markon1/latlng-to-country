@@ -35,6 +35,8 @@ var pause = 150;
 var API_KEY = "";
 // to use API key or not
 var useKey = false;
+// boolean which checks if query_limit is already hit
+var query_limit_hit = false;
 
 // Read from command line
 if (process.argv.length >= 3) {
@@ -57,9 +59,9 @@ function readCSV(csv) {
             posts.push(jsonObj);
         })
         .on('done', (error) => {
+            logger.info('Fetching countries...');
             for (i = 0; i < posts.length; i++) {
                 done[i] = posts[i];
-                logger.info('Fetching countries...');
                 // if it hasn't country already
                 if (!done[i].country) {
                     // if it can be found locally
@@ -99,48 +101,52 @@ function findCountries(ind, uri, qs) {
         type: 'json',
         timeout: 5000
     }, function(error, response, body) {
-        if (!!body) {
-            body = JSON.parse(body);
-            if (!!body.status && body.status === 'OK') {
-                for (i = 0; i < body.results[0].address_components.length; i++) {
-                    var address_component = body.results[0].address_components[i];
-                    for (j = 0; j < address_component.types.length; j++) {
-                        if (address_component.types[j] == 'country') {
-                            done[ind].country = address_component.long_name;
-                            break;
+        if (!query_limit_hit) {
+            if (!!body) {
+                body = JSON.parse(body);
+                if (!!body.status && body.status === 'OK') {
+                    for (i = 0; i < body.results[0].address_components.length; i++) {
+                        var address_component = body.results[0].address_components[i];
+                        for (j = 0; j < address_component.types.length; j++) {
+                            if (address_component.types[j] == 'country') {
+                                done[ind].country = address_component.long_name;
+                                break;
+                            }
                         }
                     }
-                }
 
-                doneCounter++;
-                // If all posts are done, make CSV
-                if (doneCounter == posts.length) {
+                    doneCounter++;
+                    // If all posts are done, make CSV
+                    if (doneCounter == posts.length) {
+                        makeCSV();
+                    }
+
+                    // In this case there is connection error, so we log it and try again
+                } else if (!!body && !!body.status && body.status === "ZERO_RESULTS") {
+                    logger.warn('No result for ' + qs.latlng);
+                    doneCounter++;
+                    // If all posts are done, make CSV
+                    if (doneCounter == posts.length) {
+                        makeCSV();
+                    }
+
+                    // In this case there was an error with access token validity, so app logs error and stops here
+                } else if (!!body && !!body.status && body.status === "OVER_QUERY_LIMIT") {
+                    query_limit_hit = true;
+                    logger.warn('Error: OVER_QUERY_LIMIT, exporting to CSV... ');
                     makeCSV();
+                    logger.error('Error: OVER_QUERY_LIMIT');
+                    // In this case there was an error with access token validity, so app logs error and stops here
+                } else {
+                    logger.warn('Error finding country for ' + qs.latlng);
+                    logger.info('Trying again to find country for: ' + qs.latlng);
+                    findCountries(ind, uri, qs);
                 }
-
-                // In this case there is connection error, so we log it and try again
-            } else if (!!body && !!body.status && body.status === "ZERO_RESULTS") {
-                logger.warn('No result for ' + qs.latlng);
-                doneCounter++;
-                // If all posts are done, make CSV
-                if (doneCounter == posts.length) {
-                    makeCSV();
-                }
-
-                // In this case there was an error with access token validity, so app logs error and stops here
-            } else if (!!body && !!body.status && body.status === "OVER_QUERY_LIMIT") {
-                makeCSV();
-                logger.error('Error: OVER_QUERY_LIMIT');
-                // In this case there was an error with access token validity, so app logs error and stops here
             } else {
                 logger.warn('Error finding country for ' + qs.latlng);
                 logger.info('Trying again to find country for: ' + qs.latlng);
                 findCountries(ind, uri, qs);
             }
-        } else {
-            logger.warn('Error finding country for ' + qs.latlng);
-            logger.info('Trying again to find country for: ' + qs.latlng);
-            findCountries(ind, uri, qs);
         }
     });
 }
