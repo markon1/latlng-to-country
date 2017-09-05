@@ -1,4 +1,4 @@
-var request = require('request'),
+
     json2csv = require('json2csv'),
     winston = require('winston'),
     fs = require('fs'),
@@ -31,11 +31,17 @@ var doneCounter = 0;
 var missCounter = 0;
 // Milliseconds between two API calls
 var pause = 150;
+// API key
+var API_KEY = "";
+// to use API key or not
+var useKey = false;
 
-
-// Read Input filename from command line
-if (process.argv.length == 3) {
+// Read from command line
+if (process.argv.length >= 3) {
     inputCSV = process.argv[2];
+    if (!!process.argv[3] && process.argv[3] == 'y') {
+        useKey = true;
+    }
     readCSV(inputCSV);
 } else {
     logger.error("Error loading command line arguments");
@@ -54,23 +60,32 @@ function readCSV(csv) {
             for (i = 0; i < posts.length; i++) {
                 done[i] = posts[i];
                 logger.info('Fetching countries...');
-                // if it can be found locally
-                if (!!gc.get_country(Number(posts[i].location_latitude), Number(posts[i].location_longitude))) {
-                    done[i].country = gc.get_country(Number(posts[i].location_latitude), Number(posts[i].location_longitude)).name;
-                    doneCounter++;
-                    if (doneCounter == posts.length) {
-                        makeCSV();
+                // if it hasn't country already
+                if (!done[i].country) {
+                    // if it can be found locally
+                    if (!!gc.get_country(Number(posts[i].location_latitude), Number(posts[i].location_longitude))) {
+                        done[i].country = gc.get_country(Number(posts[i].location_latitude), Number(posts[i].location_longitude)).name;
+                        doneCounter++;
+                        if (doneCounter == posts.length) {
+                            makeCSV();
+                        }
+                        // if we must use Google's API
+                    } else {
+
+                        function fnc(j) {
+                            if (useKey) {
+                                setTimeout(function() { findCountries(j, "https://maps.googleapis.com/maps/api/geocode/json", { latlng: posts[j].location_latitude + "," + posts[j].location_longitude, key: API_KEY }); }, missCounter * pause);
+                            } else {
+                                setTimeout(function() { findCountries(j, "https://maps.googleapis.com/maps/api/geocode/json", { latlng: posts[j].location_latitude + "," + posts[j].location_longitude }); }, missCounter * pause);
+                            }
+                        }
+
+                        fnc(i);
+
+                        missCounter++;
                     }
-                    // if we must use Google's API
                 } else {
-
-                    function fnc(j) {
-                        setTimeout(function() { findCountries(j, "https://maps.googleapis.com/maps/api/geocode/json", { latlng: posts[j].location_latitude + "," + posts[j].location_longitude }); }, missCounter * pause);
-                    }
-
-                    fnc(i);
-
-                    missCounter++;
+                    doneCounter++;
                 }
             }
         });
@@ -114,6 +129,7 @@ function findCountries(ind, uri, qs) {
 
                 // In this case there was an error with access token validity, so app logs error and stops here
             } else if (!!body && !!body.status && body.status === "OVER_QUERY_LIMIT") {
+                makeCSV();
                 logger.error('Error: OVER_QUERY_LIMIT');
                 // In this case there was an error with access token validity, so app logs error and stops here
             } else {
