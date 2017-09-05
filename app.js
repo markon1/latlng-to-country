@@ -1,4 +1,4 @@
-
+var request = require('request'),
     json2csv = require('json2csv'),
     winston = require('winston'),
     fs = require('fs'),
@@ -74,7 +74,7 @@ function readCSV(csv) {
 
                         function fnc(j) {
                             if (useKey) {
-                                setTimeout(function() { findCountries(j, "https://maps.googleapis.com/maps/api/geocode/json", { latlng: posts[j].location_latitude + "," + posts[j].location_longitude, key: API_KEY }); }, missCounter * pause);
+                                findCountries(j, "https://maps.googleapis.com/maps/api/geocode/json", { latlng: posts[j].location_latitude + "," + posts[j].location_longitude, key: API_KEY });
                             } else {
                                 setTimeout(function() { findCountries(j, "https://maps.googleapis.com/maps/api/geocode/json", { latlng: posts[j].location_latitude + "," + posts[j].location_longitude }); }, missCounter * pause);
                             }
