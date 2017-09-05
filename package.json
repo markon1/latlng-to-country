@@ -1,0 +1,15 @@
+{
+    "name": "latlng-to-country",
+    "description": "Adds countries to CSV based on lat and long",
+    "version": "1.0.0",
+    "scripts": {
+        "start": "node app.js"
+    },
+    "dependencies": {
+        "request": "",
+        "json2csv": "",
+        "winston": "",
+	"csvtojson":"",
+	"country-reverse-geocoding":""
+    }
+}
