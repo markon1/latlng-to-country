@@ -3,7 +3,8 @@ var request = require('request'),
     winston = require('winston'),
     fs = require('fs'),
     csvtojson = require('csvtojson'),
-    gc = require('country-reverse-geocoding').country_reverse_geocoding();
+    gc = require('country-reverse-geocoding').country_reverse_geocoding(),
+    dotenv = require('dotenv').config();
 
 
 // Logger init
@@ -31,8 +32,6 @@ var doneCounter = 0;
 var missCounter = 0;
 // Milliseconds between two API calls
 var pause = 150;
-// API key
-var API_KEY = "";
 // to use API key or not
 var useKey = false;
 // boolean which checks if query_limit is already hit
@@ -76,7 +75,7 @@ function readCSV(csv) {
 
                         function fnc(j) {
                             if (useKey) {
-                                findCountries(j, "https://maps.googleapis.com/maps/api/geocode/json", { latlng: posts[j].location_latitude + "," + posts[j].location_longitude, key: API_KEY });
+                                findCountries(j, "https://maps.googleapis.com/maps/api/geocode/json", { latlng: posts[j].location_latitude + "," + posts[j].location_longitude, key: process.env.GOOGLE_API_KEY });
                             } else {
                                 setTimeout(function() { findCountries(j, "https://maps.googleapis.com/maps/api/geocode/json", { latlng: posts[j].location_latitude + "," + posts[j].location_longitude }); }, missCounter * pause);
                             }
