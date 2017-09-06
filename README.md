@@ -3,5 +3,5 @@ Converts lat+lng from CSV to country name
 
 # Running app:
 
-everything you need to do is to install node.js dependencies by navigating to app directory in console and running **npm install** command. After all dependencies are finished installing, only thing left is to run the app by typing **node app.js XXX.csv** command, where XXX is input CSV filename. You can optionally add 'y' parameter after filename in order to use API key. API key is inside app.js on line 35
+everything you need to do is to install node.js dependencies by navigating to app directory in console and running **npm install** command. After all dependencies are finished installing, only thing left is to run the app by typing **node app.js XXX.csv** command, where XXX is input CSV filename. You can optionally add 'y' parameter after filename in order to use API key. API key is configured inside **.env** file.
 
